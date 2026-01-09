@@ -1,0 +1,39 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+.env
+.env.*
+
+# Git metadata
+.git
+.gitignore
+
+# Tool caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Development-only directories
+.tests/
+build/
+dist/
+.coverage
+.pyre/
+
+# IDE settings
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Optional documentation/tests not required in runtime image
+docs/
+tests/
+
+# Misc
+AGENTS.md

@@ -1,0 +1,26 @@
+services:
+  fastmail-mcp:
+    build:
+      context: .
+      target: runtime
+    image: fastmail-mcp:latest
+    env_file:
+      - .env
+    environment:
+      FASTMAIL_BASE_URL: ${FASTMAIL_BASE_URL:-https://api.fastmail.com}
+    stdin_open: true
+    tty: false
+
+  fastmail-mcp-tcp:
+    build:
+      context: .
+      target: runtime
+    image: fastmail-mcp:latest
+    env_file:
+      - .env
+    environment:
+      FASTMAIL_BASE_URL: ${FASTMAIL_BASE_URL:-https://api.fastmail.com}
+      MCP_TRANSPORT_MODE: tcp
+      MCP_TCP_PORT: ${MCP_TCP_PORT:-4000}
+    ports:
+      - "${MCP_TCP_PORT:-4000}:${MCP_TCP_PORT:-4000}"

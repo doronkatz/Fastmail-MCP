@@ -1,0 +1,16 @@
+[
+  {
+    "id": "contact_001",
+    "name": "Ada Lovelace",
+    "emails": [
+      {"value": "ada@example.com"}
+    ]
+  },
+  {
+    "id": "contact_002",
+    "name": "Grace Hopper",
+    "emails": [
+      {"value": "grace@example.com"}
+    ]
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "msg_001",
+    "subject": "Welcome to the Fastmail MCP agent",
+    "snippet": "Kick the tires of the command dispatcher using this sample message.",
+    "received_at": "2024-05-01T09:30:00+00:00"
+  },
+  {
+    "id": "msg_002",
+    "subject": "Daily sync complete",
+    "snippet": "All folders were synchronized with the sandbox mailbox.",
+    "received_at": "2024-05-02T06:45:00+00:00"
+  },
+  {
+    "id": "msg_003",
+    "subject": "Integration test run",
+    "snippet": "Pytest completed successfully with 92% coverage.",
+    "received_at": "2024-05-03T18:15:00+00:00"
+  }
+]
