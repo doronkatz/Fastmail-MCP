@@ -58,5 +58,37 @@ Before making any commits:
 
 This workflow ensures proper Linear issue tracking, consistent branch naming, and maintains human oversight over all repository changes.
 
+### 6. Pre-Commit Validation
+**CRITICAL**: Before requesting human approval for any commits, always run the full validation pipeline:
+
+1. **Build Check**: Ensure all code imports and runs without syntax errors
+   ```bash
+   python3 -c "import sys; sys.path.insert(0, 'src'); import fastmail_mcp"
+   ```
+
+2. **Unit Tests**: Run comprehensive test suite with minimum 80% coverage
+   ```bash
+   python3 -m pytest tests/ --cov=fastmail_mcp --cov-report=term-missing --cov-fail-under=80
+   ```
+
+3. **Code Quality**: Run linting and formatting checks
+   ```bash
+   ruff check src tests
+   black --check src tests
+   ```
+
+4. **Integration Test**: Verify MCP server can start and register commands
+   ```bash
+   python3 -m fastmail_mcp.server --help
+   ```
+
+**No commits should be made without:**
+- ✅ All tests passing
+- ✅ Coverage ≥80% on new/modified code
+- ✅ No linting errors
+- ✅ Successful build verification
+
+Only after ALL validation steps pass should you summarize changes and request human approval for commit.
+
 ## Security & Configuration Tips
 Store real credentials in a local `.env` file (ignored by git). Ship only sanitized examples via `.env.example`, documenting `FASTMAIL_USERNAME`, `FASTMAIL_APP_PASSWORD`, `FASTMAIL_BASE_URL`, and optional sample overrides (`FASTMAIL_SAMPLE_DATA`, `FASTMAIL_CONTACT_SAMPLE_DATA`, `FASTMAIL_EVENT_SAMPLE_DATA`). Never log raw tokens or full message bodies; redact PII before checking fixtures into `assets/`. Rotate Fastmail app passwords used for local testing monthly and revoke them when debugging sessions finish.

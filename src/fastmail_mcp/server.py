@@ -40,7 +40,9 @@ class FastmailMCPServer:
     ) -> None:
         if name in self._commands:
             raise ValueError(f"Command '{name}' is already registered")
-        self._commands[name] = CommandDefinition(handler=handler, description=description)
+        self._commands[name] = CommandDefinition(
+            handler=handler, description=description
+        )
 
     def handle_call(self, name: str, params: Mapping[str, Any] | None = None) -> Any:
         if name not in self._commands:
@@ -131,7 +133,9 @@ class MCPTCPServer(socketserver.ThreadingTCPServer):
 def serve_tcp(dispatcher: FastmailMCPServer, host: str, port: int) -> None:
     """Start a TCP listener that wraps the stdio dispatcher."""
 
-    with MCPTCPServer((host, port), dispatcher) as tcp_server:  # pragma: no cover - network wrapper
+    with MCPTCPServer(
+        (host, port), dispatcher
+    ) as tcp_server:  # pragma: no cover - network wrapper
         logger.info(
             "Fastmail MCP server listening on %s:%d (TCP)",
             host,
@@ -177,7 +181,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
     args = parse_args()
     client = build_client()
     server = FastmailMCPServer(client)

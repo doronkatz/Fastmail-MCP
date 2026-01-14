@@ -6,10 +6,13 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Iterable, List, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING
 
 from fastmail_mcp.models import CalendarEvent, Contact, Message
 from fastmail_mcp.client.transport import FastmailTransportError, JMAPTransport
+
+if TYPE_CHECKING:
+    from fastmail_mcp.schemas import MailFilter, PaginationRequest
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +96,90 @@ class FastmailClient:
 
         events = sorted(events, key=lambda event: event.starts_at)
         return list(events[:limit])
+
+    def search_messages(
+        self,
+        *,
+        filter_obj: Optional["MailFilter"] = None,
+        pagination: Optional["PaginationRequest"] = None,
+        sort_by: str = "receivedAt",
+        sort_ascending: bool = False,
+    ) -> Dict[str, Any]:
+        """Search messages with advanced filtering and pagination."""
+
+        if pagination is None:
+            from fastmail_mcp.schemas import PaginationRequest
+
+            pagination = PaginationRequest()
+
+        try:
+            # Convert filter to JMAP format if provided
+            jmap_filter = None
+            if filter_obj:
+                jmap_filter = filter_obj.to_jmap_filter()
+
+            result = self._transport.search_messages(
+                limit=pagination.limit,
+                offset=pagination.offset,
+                filter_obj=jmap_filter,
+                sort_by=sort_by,
+                sort_ascending=sort_ascending,
+            )
+            return result
+
+        except FastmailTransportError as exc:
+            logger.warning("Search failed, using fixture fallback: %s", exc)
+            # Fallback to basic message list for search failures
+            messages = self.list_recent_messages(limit=pagination.limit)
+            return {
+                "messages": [msg.to_summary() for msg in messages],
+                "total": len(messages),
+                "position": pagination.offset,
+                "limit": pagination.limit,
+            }
+
+    def get_message(self, *, message_id: str, properties: List[str]) -> Dict[str, Any]:
+        """Get specific message by ID with requested properties."""
+
+        try:
+            result = self._transport.get_message(
+                message_id=message_id,
+                properties=properties,
+            )
+            return result
+
+        except FastmailTransportError as exc:
+            logger.warning("Get message failed: %s", exc)
+            # For get operations, we can't provide meaningful fallback
+            raise exc
+
+    def list_mailboxes(self, *, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
+        """List mailboxes with pagination."""
+
+        try:
+            result = self._transport.list_mailboxes(
+                limit=limit,
+                offset=offset,
+            )
+            return result
+
+        except FastmailTransportError as exc:
+            logger.warning("List mailboxes failed: %s", exc)
+            # Provide basic fallback structure
+            return {
+                "mailboxes": [
+                    {
+                        "id": "inbox",
+                        "name": "Inbox",
+                        "parent_id": None,
+                        "unread_count": 0,
+                        "total_count": 0,
+                    }
+                ],
+                "total": 1,
+                "position": offset,
+                "limit": limit,
+            }
 
     def _sample_payload(self) -> Iterable[dict]:
         path = self._sample_messages_path

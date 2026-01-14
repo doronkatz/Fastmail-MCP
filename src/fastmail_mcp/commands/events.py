@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING
 
 from fastmail_mcp.client import FastmailClient
+
+if TYPE_CHECKING:
+    from fastmail_mcp.server import FastmailMCPServer
 
 COMMAND_EVENTS_LIST = "events-list"
 

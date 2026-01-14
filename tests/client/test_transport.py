@@ -128,7 +128,9 @@ def events_method_payload():
 
 
 def test_jmap_transport_list_messages(session_payload, method_payload):
-    session = FakeSession(session_payload=session_payload, method_payload=method_payload)
+    session = FakeSession(
+        session_payload=session_payload, method_payload=method_payload
+    )
     transport = JMAPTransport(
         base_url="https://api.fastmail.com",
         username="user",
@@ -145,7 +147,9 @@ def test_jmap_transport_list_messages(session_payload, method_payload):
 
 
 def test_jmap_transport_raises_on_error(session_payload):
-    session = FakeSession(session_payload=session_payload, method_payload={"methodResponses": []})
+    session = FakeSession(
+        session_payload=session_payload, method_payload={"methodResponses": []}
+    )
     transport = JMAPTransport(
         base_url="https://api.fastmail.com",
         username="user",
@@ -158,7 +162,9 @@ def test_jmap_transport_raises_on_error(session_payload):
 
 
 def test_jmap_transport_list_contacts(session_payload, contacts_method_payload):
-    session = FakeSession(session_payload=session_payload, method_payload=contacts_method_payload)
+    session = FakeSession(
+        session_payload=session_payload, method_payload=contacts_method_payload
+    )
     transport = JMAPTransport(
         base_url="https://api.fastmail.com",
         username="user",
@@ -174,7 +180,9 @@ def test_jmap_transport_list_contacts(session_payload, contacts_method_payload):
 
 
 def test_jmap_transport_list_events(session_payload, events_method_payload):
-    session = FakeSession(session_payload=session_payload, method_payload=events_method_payload)
+    session = FakeSession(
+        session_payload=session_payload, method_payload=events_method_payload
+    )
     transport = JMAPTransport(
         base_url="https://api.fastmail.com",
         username="user",
@@ -190,7 +198,9 @@ def test_jmap_transport_list_events(session_payload, events_method_payload):
 
 
 def test_jmap_transport_uses_bearer_token(session_payload, method_payload):
-    session = FakeSession(session_payload=session_payload, method_payload=method_payload)
+    session = FakeSession(
+        session_payload=session_payload, method_payload=method_payload
+    )
     transport = JMAPTransport(
         base_url="https://api.fastmail.com",
         username="user",

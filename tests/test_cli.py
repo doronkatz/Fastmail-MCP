@@ -1,6 +1,5 @@
 import argparse
 
-import pytest
 
 from fastmail_mcp.cli import verify
 from fastmail_mcp.client.transport import FastmailTransportError
@@ -13,7 +12,9 @@ def test_verify_rejects_placeholder_credentials(monkeypatch):
     monkeypatch.setattr("fastmail_mcp.cli.load_env", lambda: {})
 
     def _boom():
-        raise AssertionError("transport should not be built with placeholder credentials")
+        raise AssertionError(
+            "transport should not be built with placeholder credentials"
+        )
 
     monkeypatch.setattr("fastmail_mcp.cli._build_transport", _boom)
 

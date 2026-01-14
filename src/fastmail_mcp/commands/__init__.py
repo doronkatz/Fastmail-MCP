@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from fastmail_mcp.client import FastmailClient
 
 from . import contacts, events, messages
+
+if TYPE_CHECKING:
+    from fastmail_mcp.server import FastmailMCPServer
 
 __all__ = ["register_all"]
 

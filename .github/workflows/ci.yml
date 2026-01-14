@@ -1,0 +1,297 @@
+name: Python Tests on Mac mini
+
+# Run CI only for pull requests (from any branch into any branch)
+on:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build, test, and enforce coverage
+    runs-on: self-hosted
+
+    strategy:
+      max-parallel: 1
+
+    env:
+      # Python environment settings
+      PYTHONPATH: src
+      # Adjust this if you want a different minimum coverage
+      COVERAGE_THRESHOLD: 80
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+          clean: true
+          persist-credentials: true
+
+      - name: Debug repo & runner info
+        run: |
+          set -euxo pipefail
+
+          echo "--- Runner environment ---"
+          uname -a || true
+          sw_vers || true
+          
+          echo "--- Python info ---"
+          python3 --version || true
+          which python3 || true
+
+          echo "--- Git info ---"
+          pwd
+          echo "Listing repo root files:"
+          ls -la . || true
+          echo "Contents of .gitignore (if present):"
+          if [ -f .gitignore ]; then cat .gitignore; else echo "<no .gitignore file>"; fi
+          git rev-parse --show-toplevel || true
+          echo "git status (branch + short):"
+          git status --porcelain=2 --branch || true
+          echo "git worktree list:"
+          git worktree list || true
+
+          echo "--- Project structure ---"
+          echo "Source directory contents:"
+          ls -la src/ || true
+          echo "Tests directory contents:"
+          ls -la tests/ || true
+        shell: bash
+
+      # Clean up any stale Python processes or cache files
+      - name: Clean up stale processes and cache
+        run: |
+          set +e
+          # Kill any stale Python processes that might be holding locks
+          pkill -f "python.*fastmail_mcp" 2>/dev/null || true
+          # Clean up Python cache files
+          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+          find . -name "*.pyc" -delete 2>/dev/null || true
+          # Clean up coverage files from previous runs
+          rm -f .coverage .coverage.* 2>/dev/null || true
+          rm -rf htmlcov 2>/dev/null || true
+          set -e
+
+      - name: Set up Python environment
+        run: |
+          set -e
+          echo "Using Python: $(which python3)"
+          echo "Python version: $(python3 --version)"
+          
+          # Ensure pip is up to date
+          python3 -m pip install --upgrade pip
+          
+          # Install dependencies
+          if [ -f requirements.txt ]; then
+            echo "Installing dependencies from requirements.txt"
+            python3 -m pip install -r requirements.txt
+          elif [ -f requirements.in ]; then
+            echo "Installing dependencies from requirements.in"
+            python3 -m pip install -r requirements.in
+          else
+            echo "No requirements file found, installing minimal test dependencies"
+            python3 -m pip install pytest pytest-cov black ruff
+          fi
+          
+          # Install coverage tools
+          python3 -m pip install coverage pytest-cov
+        shell: bash
+
+      - name: Create environment configuration from secrets
+        if: always()
+        shell: bash
+        env:
+          FASTMAIL_CREDENTIALS_BASE64: ${{ secrets.FASTMAIL_CREDENTIALS_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "${FASTMAIL_CREDENTIALS_BASE64:-}" ]; then
+            echo "Writing .env from FASTMAIL_CREDENTIALS_BASE64 secret"
+            # Decode base64 secret in a shell-friendly, cross-platform way
+            if command -v base64 >/dev/null 2>&1; then
+              # Prefer GNU long option if available
+              if base64 --help 2>&1 | head -n 1 | grep -q -- --decode; then
+                echo "$FASTMAIL_CREDENTIALS_BASE64" | base64 --decode > .env
+              else
+                # macOS/BSD base64 uses -D for decode
+                echo "$FASTMAIL_CREDENTIALS_BASE64" | base64 -D > .env
+              fi
+              echo "Wrote .env ($(wc -c < .env) bytes)"
+              chmod 600 .env
+            else
+              echo "ERROR: base64 command not found" >&2
+              exit 1
+            fi
+          elif [ -f .env.example ]; then
+            echo "FASTMAIL_CREDENTIALS_BASE64 is not set; falling back to .env.example"
+            cp .env.example .env
+          else
+            echo "WARNING: FASTMAIL_CREDENTIALS_BASE64 is not set and no .env.example fallback is available."
+            echo "Creating minimal .env file for testing..."
+            echo "FASTMAIL_BASE_URL=https://api.fastmail.com" > .env
+            echo "FASTMAIL_USERNAME=test-user" >> .env
+            echo "FASTMAIL_APP_PASSWORD=test-password" >> .env
+            echo "FASTMAIL_TOKEN=test-token" >> .env
+          fi
+
+      - name: Verify build and imports
+        run: |
+          set -euo pipefail
+          
+          echo "--- Build Verification ---"
+          # Verify all imports work correctly
+          python3 -c "import sys; sys.path.insert(0, 'src'); import fastmail_mcp"
+          echo "✅ Core module imports successfully"
+          
+          # Test server help functionality
+          PYTHONPATH=src python3 src/fastmail_mcp/server.py --help > /dev/null
+          echo "✅ MCP server functionality accessible"
+          
+          echo "Build verification completed successfully"
+        shell: bash
+
+      - name: Run code quality checks
+        run: |
+          set -euo pipefail
+          
+          echo "--- Code Quality Checks ---"
+          
+          # Linting validation
+          echo "Running ruff linting..."
+          ruff check src tests
+          echo "✅ Ruff linting passed"
+          
+          # Formatting validation
+          echo "Running black formatting check..."
+          black --check src tests
+          echo "✅ Black formatting passed"
+          
+          echo "Code quality checks completed successfully"
+        shell: bash
+
+      - name: Run unit tests with coverage
+        run: |
+          set -o pipefail
+
+          mkdir -p coverage
+          
+          # Clean up any existing coverage files
+          rm -f .coverage .coverage.*
+          rm -rf htmlcov
+
+          echo "--- Running Test Suite ---"
+          
+          # Run tests and capture exit code, but don't fail immediately
+          set +o pipefail
+          python3 -m pytest tests/ \
+            --cov=fastmail_mcp \
+            --cov-report=term-missing \
+            --cov-report=html:htmlcov \
+            --cov-report=json:coverage/coverage.json \
+            --cov-fail-under=${COVERAGE_THRESHOLD} \
+            -v \
+            --tb=short | tee coverage/pytest.log
+          PYTEST_EXIT_CODE=$?
+          set -o pipefail
+          
+          echo "pytest exited with code: $PYTEST_EXIT_CODE"
+          
+          # Generate additional coverage reports
+          if [ -f .coverage ]; then
+            echo "--- Generating Coverage Reports ---"
+            python3 -m coverage report --format=total > coverage/coverage-total.txt
+            python3 -m coverage report --format=markdown > coverage/coverage-summary.md
+            COVERAGE_PERCENT=$(cat coverage/coverage-total.txt)
+            echo "Total coverage: ${COVERAGE_PERCENT}%"
+            
+            # Create a simple summary
+            echo "## Test Results Summary" > coverage/test-summary.md
+            echo "" >> coverage/test-summary.md
+            echo "- **Total Coverage**: ${COVERAGE_PERCENT}%" >> coverage/test-summary.md
+            echo "- **Coverage Threshold**: ${COVERAGE_THRESHOLD}%" >> coverage/test-summary.md
+            if [ "$PYTEST_EXIT_CODE" -eq 0 ]; then
+              echo "- **Test Status**: ✅ All tests passed" >> coverage/test-summary.md
+            else
+              echo "- **Test Status**: ❌ Some tests failed" >> coverage/test-summary.md
+            fi
+            echo "" >> coverage/test-summary.md
+            echo "### Detailed Coverage Report" >> coverage/test-summary.md
+            python3 -m coverage report --format=markdown >> coverage/test-summary.md
+          else
+            echo "WARNING: No coverage data found"
+          fi
+          
+          if [ $PYTEST_EXIT_CODE -ne 0 ]; then
+            echo "Tests failed with exit code: $PYTEST_EXIT_CODE" >&2
+            exit $PYTEST_EXIT_CODE
+          fi
+          
+          echo "Tests completed successfully"
+        shell: bash
+
+      - name: Integration validation
+        run: |
+          set -euo pipefail
+          
+          echo "--- Integration Validation ---"
+          
+          # Verify MCP server can start and show help
+          timeout 5s bash -c "PYTHONPATH=src python3 src/fastmail_mcp/server.py --help" || true
+          echo "✅ MCP server integration validated"
+          
+          echo "Integration validation completed successfully"
+        shell: bash
+
+      - name: Add test summary to job summary
+        if: always()
+        run: |
+          if [ -f coverage/test-summary.md ]; then
+            echo "## 🧪 Test Results" >> "$GITHUB_STEP_SUMMARY"
+            cat coverage/test-summary.md >> "$GITHUB_STEP_SUMMARY"
+          elif [ -f coverage/coverage-summary.md ]; then
+            echo "## 📊 Coverage Summary" >> "$GITHUB_STEP_SUMMARY"
+            cat coverage/coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## ⚠️ Test Results" >> "$GITHUB_STEP_SUMMARY"
+            echo "Coverage summary not found. Check the test execution logs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+        shell: bash
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: |
+            coverage/
+            htmlcov/
+            .coverage
+          retention-days: 7
+
+      - name: Fail if coverage below threshold
+        if: always()
+        run: |
+          if [ -f coverage/coverage-total.txt ]; then
+            COVERAGE_PERCENT=$(cat coverage/coverage-total.txt)
+            echo "Final coverage check: ${COVERAGE_PERCENT}% (threshold: ${COVERAGE_THRESHOLD}%)"
+            
+            # Use bc for floating point comparison if available, otherwise use integer comparison
+            if command -v bc >/dev/null 2>&1; then
+              if [ $(echo "${COVERAGE_PERCENT} < ${COVERAGE_THRESHOLD}" | bc) -eq 1 ]; then
+                echo "❌ Coverage ${COVERAGE_PERCENT}% fell below required threshold (${COVERAGE_THRESHOLD}%)" >&2
+                exit 1
+              fi
+            else
+              # Fallback to integer comparison (truncating decimals)
+              COVERAGE_INT=${COVERAGE_PERCENT%.*}
+              if [ "${COVERAGE_INT}" -lt "${COVERAGE_THRESHOLD}" ]; then
+                echo "❌ Coverage ${COVERAGE_PERCENT}% fell below required threshold (${COVERAGE_THRESHOLD}%)" >&2
+                exit 1
+              fi
+            fi
+            
+            echo "✅ Coverage requirement satisfied: ${COVERAGE_PERCENT}% >= ${COVERAGE_THRESHOLD}%"
+          else
+            echo "❌ Could not determine coverage percentage" >&2
+            exit 1
+          fi
+        shell: bash

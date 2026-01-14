@@ -64,7 +64,9 @@ def verify(_: argparse.Namespace) -> int:
     app_password = os.environ.get("FASTMAIL_APP_PASSWORD", "local-app-password")
     token = os.environ.get("FASTMAIL_TOKEN")
     if not token and _uses_placeholder_credentials(username, app_password):
-        logger.warning("Credentials appear to be placeholders; update .env before verifying.")
+        logger.warning(
+            "Credentials appear to be placeholders; update .env before verifying."
+        )
         return 1
 
     auth_label = "bearer token" if token else "app password"
@@ -91,14 +93,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Fastmail MCP helper utilities")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    verify_parser = subparsers.add_parser("verify", help="Validate live Fastmail connectivity")
+    verify_parser = subparsers.add_parser(
+        "verify", help="Validate live Fastmail connectivity"
+    )
     verify_parser.set_defaults(func=verify)
 
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)
