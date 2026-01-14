@@ -341,16 +341,16 @@ class TestEnhancedMessageCommands:
         # Check that messages-send was NOT registered
         call_args = [call[0][0] for call in mock_server.register_command.call_args_list]
         assert COMMAND_MESSAGES_SEND not in call_args
-    
+
     def test_search_with_complex_filter_conversion(self):
         """Test search with complex filter that exercises conversion logic."""
         self.mock_client.search_messages.return_value = {
             "messages": [],
             "total": 0,
             "position": 0,
-            "limit": 10
+            "limit": 10,
         }
-        
+
         # Test with mailbox filter to exercise JMAP conversion
         result = search_messages(
             client=self.mock_client,
@@ -358,9 +358,9 @@ class TestEnhancedMessageCommands:
             sender="specific@example.com",
             subject="Important Meeting",
             read=True,
-            has_attachment=True
+            has_attachment=True,
         )
-        
+
         assert "messages" in result
         # Verify client was called (exercises the filter conversion path)
         self.mock_client.search_messages.assert_called_once()
