@@ -18,7 +18,7 @@ Target Python 3.11 semantics. Format with `black` (88 columns) and lint with `ru
 All feature work needs pytest coverage. Reuse fixtures from `tests/fixtures/` and model tests after the source layout. Use descriptive test names (`test_transport_returns_sorted_messages`). Run `pytest --cov=fastmail_mcp --cov-report=term-missing` before opening a PR; aim for ≥85% coverage on new modules. Mark long-running network tests with `@pytest.mark.slow` so they stay opt-in.
 
 ## Commit & Pull Request Guidelines
-Use Conventional Commits (`feat:`, `fix:`, `chore:`) and keep each commit targeted. PRs must include a short summary, linked task or issue, manual test notes, and screenshots or JSON samples when command output changes. Request review from another Fastmail MCP contributor before merging.
+Use Conventional Commits (`feat:`, `fix:`, `chore:`) and keep each commit targeted. Commits must be unsigned (use `--no-gpg-sign`) unless explicitly requested. PRs must include a short summary, linked task or issue, manual test notes, and screenshots or JSON samples when command output changes. Request review from another Fastmail MCP contributor before merging.
 
 ## Linear Issue Workflow
 
