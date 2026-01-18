@@ -22,5 +22,11 @@ services:
       FASTMAIL_BASE_URL: ${FASTMAIL_BASE_URL:-https://api.fastmail.com}
       MCP_TRANSPORT_MODE: tcp
       MCP_TCP_PORT: ${MCP_TCP_PORT:-4000}
+    restart: unless-stopped
     ports:
       - "${MCP_TCP_PORT:-4000}:${MCP_TCP_PORT:-4000}"
+    volumes:
+      - fastmail-mcp-data:/app/data
+
+volumes:
+  fastmail-mcp-data:

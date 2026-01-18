@@ -1,0 +1,15 @@
+{
+  order layer4 last
+}
+
+:443 {
+  # Requires the caddy-l4 plugin to proxy raw TCP traffic.
+  layer4 {
+    # Terminate TLS for Tailnet clients using a Tailscale-issued cert.
+    # Generate with: tailscale cert mac-mini.tailnet.ts.net
+    tls /etc/caddy/certs/mac-mini.tailnet.ts.net.crt /etc/caddy/certs/mac-mini.tailnet.ts.net.key
+
+    # Forward the MCP TCP stream to the Fastmail MCP container.
+    proxy 127.0.0.1:4000
+  }
+}
