@@ -54,28 +54,21 @@
 
 ## ✨ Features
 
-A powerful Model Context Protocol (MCP) server that provides AI applications with secure access to your Fastmail email, contacts, and calendar data.
+A powerful Model Context Protocol (MCP) server that provides AI applications with secure access to your Fastmail email data.
 
 ### 📧 Email Management
 - **Smart Search**: Advanced email search with date ranges, sender filtering, and attachment detection
 - **Message Retrieval**: Get full email details including headers, body, and attachments
 - **Bulk Operations**: List and filter large email collections efficiently
 
-### 👥 Contact Integration  
-- **Address Book Access**: List and search your Fastmail contacts
-- **Contact Details**: Retrieve complete contact information
-- **Smart Filtering**: Find contacts by name, email, or organization
-
-### 📅 Calendar Events
-- **Event Listing**: Access your calendar events and appointments
-- **Date-based Queries**: Filter events by specific date ranges
-- **Meeting Details**: Get comprehensive event information
-
 ### 🛡️ Enterprise-Ready
 - **Secure Authentication**: Uses Fastmail app passwords (never your main password)
 - **Graceful Fallbacks**: Sample data mode when API is unavailable
 - **Comprehensive Logging**: Detailed error reporting and debugging information
 - **Production Tested**: Battle-tested with extensive test coverage (80%+)
+
+### Roadmap
+- TODO: Add contacts and calendar support once Fastmail exposes those JMAP objects and the scopes are available via token.
 
 ## 📖 Documentation
 
@@ -87,16 +80,6 @@ A powerful Model Context Protocol (MCP) server that provides AI applications wit
 | `messages-list` | List recent emails with basic filtering | `limit`, `mailbox` |
 | `messages-search` | Advanced search with date/sender/subject filters | `query`, `since`, `before`, `from`, `has_attachment` |
 | `messages-get` | Retrieve complete message details | `message_id` |
-
-#### Contacts  
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `contacts-list` | List contacts from address book | `limit`, `search` |
-
-#### Events
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `events-list` | List calendar events | `start_date`, `end_date`, `limit` |
 
 ### Configuration
 
@@ -196,9 +179,7 @@ Fastmail-MCP/
 │   │   ├── api.py             # High-level client interface
 │   │   └── transport.py       # JMAP transport layer
 │   ├── commands/              # MCP command implementations
-│   │   ├── messages.py        # Email operations
-│   │   ├── contacts.py        # Contact management
-│   │   └── events.py          # Calendar functionality
+│   │   └── messages.py        # Email operations
 │   ├── models/                # Data models and schemas
 │   ├── schemas/               # Request/response validation
 │   ├── server.py              # MCP server implementation
@@ -220,16 +201,6 @@ Once configured with your MCP client, you can interact naturally:
 - *"Find unread messages from john@company.com"*
 - *"List emails with attachments from last week"*
 - *"Get the latest email from my manager"*
-
-### Contact Management
-- *"Find contacts at Acme Corporation"*
-- *"Show me Sarah's contact information"*
-- *"List all contacts with phone numbers"*
-
-### Calendar Integration
-- *"What meetings do I have today?"*
-- *"Show events for next week"*
-- *"Find my appointment with Dr. Smith"*
 
 ## 🔧 Troubleshooting
 

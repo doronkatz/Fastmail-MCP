@@ -6,7 +6,13 @@ import pytest
 
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
-from mcp.types import Tool, ServerCapabilities, ToolsCapability
+from mcp.types import (
+    CallToolRequest,
+    ListToolsRequest,
+    Tool,
+    ServerCapabilities,
+    ToolsCapability,
+)
 
 from fastmail_mcp.mcp_server import build_client, create_server, main
 from fastmail_mcp.client import FastmailClient
@@ -129,17 +135,12 @@ class TestCreateServer:
 
         server = create_server()
 
-        # Mock the async behavior by directly calling the decorated function
-        # The @server.list_tools() decorator creates a handler we can access
-        handler = None
-        for handler_info in server._list_tools_handlers:
-            handler = handler_info.func
-            break
-
-        # Create a mock coroutine result
+        # Call the list tools handler registered by the decorator.
         import asyncio
 
-        tools = asyncio.run(handler())
+        handler = server.request_handlers[ListToolsRequest]
+        response = asyncio.run(handler(ListToolsRequest(method="tools/list")))
+        tools = response.root.tools
 
         assert len(tools) == 5
         tool_names = [tool.name for tool in tools]
@@ -160,7 +161,9 @@ class TestCreateServer:
         mock_build_client.return_value = mock_client
 
         server = create_server()
-        tools = await server._list_tools_handler()
+        handler = server.request_handlers[ListToolsRequest]
+        response = await handler(ListToolsRequest(method="tools/list"))
+        tools = response.root.tools
 
         for tool in tools:
             assert isinstance(tool, Tool)
@@ -189,13 +192,20 @@ class TestCallTool:
         server = create_server()
 
         # Call the tool
-        result = await server._call_tool_handler("messages-list", {"limit": "10"})
+        handler = server.request_handlers[CallToolRequest]
+        response = await handler(
+            CallToolRequest(
+                method="tools/call",
+                params={"name": "messages-list", "arguments": {"limit": "10"}},
+            )
+        )
+        content = response.root.content
 
         # Verify the call
         mock_list_messages.assert_called_once_with(client=mock_client, limit=10)
-        assert len(result) == 1
-        assert result[0]["type"] == "text"
-        assert "test message" in result[0]["text"]
+        assert len(content) == 1
+        assert content[0].type == "text"
+        assert "test message" in content[0].text
 
     @patch("fastmail_mcp.mcp_server.build_client")
     @patch("fastmail_mcp.mcp_server.search_messages")
@@ -211,17 +221,28 @@ class TestCallTool:
         server = create_server()
 
         # Call the tool with various arguments
-        result = await server._call_tool_handler(
-            "messages-search",
-            {"limit": "5", "offset": "10", "sender": "test@example.com"},
+        handler = server.request_handlers[CallToolRequest]
+        response = await handler(
+            CallToolRequest(
+                method="tools/call",
+                params={
+                    "name": "messages-search",
+                    "arguments": {
+                        "limit": "5",
+                        "offset": "10",
+                        "sender": "test@example.com",
+                    },
+                },
+            )
         )
+        content = response.root.content
 
         # Verify the call with proper type conversions
         mock_search_messages.assert_called_once_with(
             client=mock_client, limit=5, offset=10, sender="test@example.com"
         )
-        assert len(result) == 1
-        assert result[0]["type"] == "text"
+        assert len(content) == 1
+        assert content[0].type == "text"
 
     @patch("fastmail_mcp.mcp_server.build_client")
     @patch("fastmail_mcp.mcp_server.get_message")
@@ -235,16 +256,21 @@ class TestCallTool:
         server = create_server()
 
         # Call the tool
-        result = await server._call_tool_handler(
-            "messages-get", {"message_id": "msg123"}
+        handler = server.request_handlers[CallToolRequest]
+        response = await handler(
+            CallToolRequest(
+                method="tools/call",
+                params={"name": "messages-get", "arguments": {"message_id": "msg123"}},
+            )
         )
+        content = response.root.content
 
         # Verify the call
         mock_get_message.assert_called_once_with(
             client=mock_client, message_id="msg123"
         )
-        assert len(result) == 1
-        assert result[0]["type"] == "text"
+        assert len(content) == 1
+        assert content[0].type == "text"
 
     @patch("fastmail_mcp.mcp_server.build_client")
     @patch("fastmail_mcp.mcp_server.list_contacts")
@@ -258,12 +284,19 @@ class TestCallTool:
         server = create_server()
 
         # Call the tool
-        result = await server._call_tool_handler("contacts-list", {"limit": "20"})
+        handler = server.request_handlers[CallToolRequest]
+        response = await handler(
+            CallToolRequest(
+                method="tools/call",
+                params={"name": "contacts-list", "arguments": {"limit": "20"}},
+            )
+        )
+        content = response.root.content
 
         # Verify the call
         mock_list_contacts.assert_called_once_with(client=mock_client, limit=20)
-        assert len(result) == 1
-        assert result[0]["type"] == "text"
+        assert len(content) == 1
+        assert content[0].type == "text"
 
     @patch("fastmail_mcp.mcp_server.build_client")
     @patch("fastmail_mcp.mcp_server.list_events")
@@ -277,12 +310,19 @@ class TestCallTool:
         server = create_server()
 
         # Call the tool
-        result = await server._call_tool_handler("events-list", {"limit": "15"})
+        handler = server.request_handlers[CallToolRequest]
+        response = await handler(
+            CallToolRequest(
+                method="tools/call",
+                params={"name": "events-list", "arguments": {"limit": "15"}},
+            )
+        )
+        content = response.root.content
 
         # Verify the call
         mock_list_events.assert_called_once_with(client=mock_client, limit=15)
-        assert len(result) == 1
-        assert result[0]["type"] == "text"
+        assert len(content) == 1
+        assert content[0].type == "text"
 
     @patch("fastmail_mcp.mcp_server.build_client")
     @pytest.mark.asyncio
@@ -294,8 +334,16 @@ class TestCallTool:
         server = create_server()
 
         # Attempt to call unknown tool
-        with pytest.raises(ValueError, match="Unknown tool: unknown-tool"):
-            await server._call_tool_handler("unknown-tool", {})
+        handler = server.request_handlers[CallToolRequest]
+        response = await handler(
+            CallToolRequest(
+                method="tools/call",
+                params={"name": "unknown-tool", "arguments": {}},
+            )
+        )
+
+        assert response.root.isError is True
+        assert response.root.content[0].text == "Unknown tool: unknown-tool"
 
     @patch("fastmail_mcp.mcp_server.build_client")
     @pytest.mark.asyncio
@@ -310,7 +358,13 @@ class TestCallTool:
             mock_list_messages.return_value = {"messages": []}
 
             # Call without limit parameter
-            await server._call_tool_handler("messages-list", {})
+            handler = server.request_handlers[CallToolRequest]
+            await handler(
+                CallToolRequest(
+                    method="tools/call",
+                    params={"name": "messages-list", "arguments": {}},
+                )
+            )
 
             # Verify limit was not passed
             mock_list_messages.assert_called_once_with(client=mock_client)
@@ -381,20 +435,34 @@ class TestIntegration:
         server = create_server()
 
         # First list the tools
-        tools = await server._list_tools_handler()
+        handler = server.request_handlers[ListToolsRequest]
+        response = await handler(ListToolsRequest(method="tools/list"))
+        tools = response.root.tools
         assert len(tools) == 5
 
         # Then try calling each tool
         with patch(
             "fastmail_mcp.mcp_server.list_messages", return_value={"messages": []}
         ):
-            result = await server._call_tool_handler("messages-list", {})
-            assert len(result) == 1
-            assert result[0]["type"] == "text"
+            handler = server.request_handlers[CallToolRequest]
+            response = await handler(
+                CallToolRequest(
+                    method="tools/call",
+                    params={"name": "messages-list", "arguments": {}},
+                )
+            )
+            assert len(response.root.content) == 1
+            assert response.root.content[0].type == "text"
 
         with patch(
             "fastmail_mcp.mcp_server.list_contacts", return_value={"contacts": []}
         ):
-            result = await server._call_tool_handler("contacts-list", {})
-            assert len(result) == 1
-            assert result[0]["type"] == "text"
+            handler = server.request_handlers[CallToolRequest]
+            response = await handler(
+                CallToolRequest(
+                    method="tools/call",
+                    params={"name": "contacts-list", "arguments": {}},
+                )
+            )
+            assert len(response.root.content) == 1
+            assert response.root.content[0].type == "text"
