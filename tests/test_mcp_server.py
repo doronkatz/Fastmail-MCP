@@ -121,33 +121,34 @@ class TestCreateServer:
         assert server.name == "fastmail-mcp"
         mock_build_client.assert_called_once()
 
-    @patch('fastmail_mcp.mcp_server.build_client')
+    @patch("fastmail_mcp.mcp_server.build_client")
     def test_list_tools_returns_expected_tools(self, mock_build_client):
         """Test that list_tools returns all expected MCP tools."""
         mock_client = Mock()
         mock_build_client.return_value = mock_client
-        
+
         server = create_server()
-        
+
         # Mock the async behavior by directly calling the decorated function
         # The @server.list_tools() decorator creates a handler we can access
         handler = None
         for handler_info in server._list_tools_handlers:
             handler = handler_info.func
             break
-        
+
         # Create a mock coroutine result
         import asyncio
+
         tools = asyncio.run(handler())
-        
+
         assert len(tools) == 5
         tool_names = [tool.name for tool in tools]
         expected_names = [
             "messages-list",
-            "messages-search", 
+            "messages-search",
             "messages-get",
             "contacts-list",
-            "events-list"
+            "events-list",
         ]
         assert tool_names == expected_names
 
