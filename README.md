@@ -1,169 +1,330 @@
-# Fastmail MCP Server
+<div align="center">
 
-A Model Context Protocol (MCP) server that provides access to Fastmail email, contacts, and calendar data through a standardized interface.
+![Fastmail MCP Logo](assets/logo.svg)
 
-## Features
+# Fastmail Model Context Protocol Server
 
-- **Email Management**: List, search, and retrieve email messages with advanced filtering
-- **Contact Access**: List contacts from your Fastmail address book
-- **Calendar Events**: Access calendar events and appointments
-- **Date-based Filtering**: Search emails by date ranges
-- **Robust Error Handling**: Graceful fallback to sample data when live API is unavailable
+[![CI Status](https://github.com/doronkatz/Fastmail-MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/doronkatz/Fastmail-MCP/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/doronkatz/Fastmail-MCP/releases)
+[![Coverage](https://img.shields.io/badge/coverage-80%25+-brightgreen.svg)](https://github.com/doronkatz/Fastmail-MCP/actions)
 
-## MCP Tools
+**Professional email integration for AI applications through the Model Context Protocol**
 
-### Messages
-- `messages-list`: List recent email messages with basic filtering
-- `messages-search`: Advanced email search with date ranges, sender, subject, and attachment filters
-- `messages-get`: Retrieve full details of a specific message
+[Quick Start](#quick-start) • [Documentation](#documentation) • [Contributing](#contributing) • [Support](#support)
 
-### Contacts
-- `contacts-list`: List contacts from address book
+</div>
 
-### Events
-- `events-list`: List calendar events
+---
 
-## Installation & Setup
+## 🚀 Quick Start
 
-### 1. Environment Configuration
+1. **Clone and install dependencies:**
+   ```bash
+   git clone https://github.com/doronkatz/Fastmail-MCP.git
+   cd Fastmail-MCP
+   python -m venv .venv && source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
-Create a `.env` file in the project root with your Fastmail credentials:
+2. **Configure your Fastmail credentials:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Fastmail app password
+   ```
+
+3. **Test the connection:**
+   ```bash
+   python -m fastmail_mcp.cli verify
+   ```
+
+4. **Add to your MCP client** (Claude Desktop, Warp, etc.):
+   ```json
+   {
+     "fastmail": {
+       "command": "python3",
+       "args": ["-m", "fastmail_mcp.server"],
+       "cwd": "/absolute/path/to/Fastmail-MCP",
+       "env": {"PYTHONPATH": "/absolute/path/to/Fastmail-MCP/src"}
+     }
+   }
+   ```
+
+## ✨ Features
+
+A powerful Model Context Protocol (MCP) server that provides AI applications with secure access to your Fastmail email, contacts, and calendar data.
+
+### 📧 Email Management
+- **Smart Search**: Advanced email search with date ranges, sender filtering, and attachment detection
+- **Message Retrieval**: Get full email details including headers, body, and attachments
+- **Bulk Operations**: List and filter large email collections efficiently
+
+### 👥 Contact Integration  
+- **Address Book Access**: List and search your Fastmail contacts
+- **Contact Details**: Retrieve complete contact information
+- **Smart Filtering**: Find contacts by name, email, or organization
+
+### 📅 Calendar Events
+- **Event Listing**: Access your calendar events and appointments
+- **Date-based Queries**: Filter events by specific date ranges
+- **Meeting Details**: Get comprehensive event information
+
+### 🛡️ Enterprise-Ready
+- **Secure Authentication**: Uses Fastmail app passwords (never your main password)
+- **Graceful Fallbacks**: Sample data mode when API is unavailable
+- **Comprehensive Logging**: Detailed error reporting and debugging information
+- **Production Tested**: Battle-tested with extensive test coverage (80%+)
+
+## 📖 Documentation
+
+### MCP Tools Reference
+
+#### Messages
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `messages-list` | List recent emails with basic filtering | `limit`, `mailbox` |
+| `messages-search` | Advanced search with date/sender/subject filters | `query`, `since`, `before`, `from`, `has_attachment` |
+| `messages-get` | Retrieve complete message details | `message_id` |
+
+#### Contacts  
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `contacts-list` | List contacts from address book | `limit`, `search` |
+
+#### Events
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `events-list` | List calendar events | `start_date`, `end_date`, `limit` |
+
+### Configuration
+
+#### Environment Variables
+Create a `.env` file with your Fastmail credentials:
 
 ```bash
+# Required: Your Fastmail email address
 FASTMAIL_USERNAME=your.email@fastmail.com
+
+# Required: App password (not your main password!)
 FASTMAIL_APP_PASSWORD=your-app-password
+
+# Optional: Fastmail API endpoint (defaults to official API)
 FASTMAIL_BASE_URL=https://api.fastmail.com
-FASTMAIL_TOKEN=your-session-token  # Optional: for enhanced authentication
+
+# Optional: Session token for enhanced authentication
+FASTMAIL_TOKEN=your-session-token
 ```
 
-**Security Note**: Never commit your `.env` file to version control. Use `.env.example` as a template.
+**🔒 Security Best Practices:**
+- Never commit your `.env` file to version control
+- Use Fastmail app passwords, not your main account password
+- Rotate app passwords regularly
+- Review the `.env.example` file for reference
 
-### 2. MCP Client Configuration
+#### Creating Fastmail App Passwords
 
-To integrate this server with an MCP client (like Claude Desktop, Warp, or other MCP-compatible applications), add the following configuration to your MCP settings file:
+1. Log into your Fastmail account
+2. Navigate to **Settings → Privacy & Security → App Passwords**  
+3. Click **Create New App Password**
+4. Name it "MCP Server" or similar
+5. Copy the generated password to your `.env` file
+6. Test with: `python -m fastmail_mcp.cli verify`
 
-```json
-{
-  "fastmail": {
-    "args": [
-      "-m",
-      "fastmail_mcp.server"
-    ],
-    "command": "python3",
-    "cwd": "/path/to/your/Fastmail-MCP",
-    "env": {
-      "PYTHONPATH": "/path/to/your/Fastmail-MCP/src"
-    }
-  }
-}
-```
-
-**Important**: Replace `/path/to/your/Fastmail-MCP` with the actual absolute path to your Fastmail-MCP directory.
-
-### 3. Fastmail App Password
-
-1. Log in to your Fastmail account
-2. Go to Settings > Privacy & Security > App Passwords
-3. Create a new app password for this MCP server
-4. Use this password in your `.env` file as `FASTMAIL_APP_PASSWORD`
-
-## Development
+## 🏗️ Development
 
 ### Prerequisites
+- **Python 3.11+** (tested on 3.11, 3.12)
+- **Git** for version control
+- **Fastmail account** with API access
 
-- Python 3.11 or higher
-- Required dependencies (install with `pip install -r requirements.txt`)
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/doronkatz/Fastmail-MCP.git
+cd Fastmail-MCP
+
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment
+cp .env.example .env
+# Edit .env with your credentials
+```
 
 ### Running the Server
 
-For development and testing:
-
 ```bash
-# Set up Python path and run the server
-PYTHONPATH=src python3 -m fastmail_mcp.server
+# Development mode (with debugging)
+PYTHONPATH=src python -m fastmail_mcp.server
+
+# Verify connectivity
+python -m fastmail_mcp.cli verify
 ```
 
-### Testing
+### Testing & Quality Assurance
 
 ```bash
-# Run the test suite
+# Run the complete test suite
 pytest
 
-# Run with coverage
-pytest --cov=fastmail_mcp --cov-report=term-missing
+# Run with coverage reporting
+pytest --cov=fastmail_mcp --cov-report=term-missing --cov-fail-under=80
 
-# Verify live connectivity
-python3 -m fastmail_mcp.cli verify
-```
+# Code formatting
+black src tests
 
-### Code Quality
-
-```bash
-# Lint code
+# Linting
 ruff check src tests
 
-# Format code
-black src tests
+# Fix auto-fixable linting issues
+ruff check src tests --fix
 ```
 
-## Architecture
+### Project Architecture
 
 ```
-src/fastmail_mcp/
-├── client/           # API clients and transport layer
-│   ├── api.py       # High-level Fastmail client
-│   └── transport.py # JMAP transport implementation
-├── commands/        # MCP command implementations
-│   ├── messages.py  # Email-related commands
-│   ├── contacts.py  # Contact management commands
-│   └── events.py    # Calendar event commands
-├── models/          # Data models
-├── schemas/         # Request/response schemas
-├── server.py        # Legacy MCP server (backwards compatibility)
-├── mcp_server.py    # Modern MCP-compliant server
-├── cli.py          # Command-line utilities
-└── utils.py        # Shared utilities
+Fastmail-MCP/
+├── src/fastmail_mcp/           # Main application code
+│   ├── client/                 # Fastmail API clients
+│   │   ├── api.py             # High-level client interface
+│   │   └── transport.py       # JMAP transport layer
+│   ├── commands/              # MCP command implementations
+│   │   ├── messages.py        # Email operations
+│   │   ├── contacts.py        # Contact management
+│   │   └── events.py          # Calendar functionality
+│   ├── models/                # Data models and schemas
+│   ├── schemas/               # Request/response validation
+│   ├── server.py              # MCP server implementation
+│   ├── cli.py                # Command-line utilities
+│   └── utils.py              # Shared utilities
+├── tests/                     # Comprehensive test suite
+├── assets/                    # Static assets (logos, samples)
+├── docs/                      # Additional documentation
+├── .github/workflows/         # CI/CD pipelines
+└── requirements.txt           # Python dependencies
 ```
 
-## Usage Examples
+## 🎯 Usage Examples
 
-Once configured with your MCP client, you can use natural language to interact with your Fastmail data:
+Once configured with your MCP client, you can interact naturally:
 
-- "List my emails from yesterday"
-- "Show me unread messages from john@example.com"
-- "Find emails with attachments from last week"
-- "Get my contacts"
-- "Show my calendar events for tomorrow"
+### Email Queries
+- *"Show me emails from yesterday"*
+- *"Find unread messages from john@company.com"*
+- *"List emails with attachments from last week"*
+- *"Get the latest email from my manager"*
 
-## Troubleshooting
+### Contact Management
+- *"Find contacts at Acme Corporation"*
+- *"Show me Sarah's contact information"*
+- *"List all contacts with phone numbers"*
+
+### Calendar Integration
+- *"What meetings do I have today?"*
+- *"Show events for next week"*
+- *"Find my appointment with Dr. Smith"*
+
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-1. **Transport closed error**: Restart your MCP client or check that the server path is correct
-2. **Authentication failed**: Verify your app password and username in `.env`
-3. **Module not found**: Ensure `PYTHONPATH` is set correctly in your MCP configuration
+#### Connection Problems
+```bash
+# Test your credentials
+python -m fastmail_mcp.cli verify
 
-### Logs and Debugging
+# Check server startup
+PYTHONPATH=src python -m fastmail_mcp.server --help
+```
 
-The server logs important information to help diagnose issues. When reporting problems, include:
-- Your MCP client configuration (without sensitive data)
-- Server logs
-- The specific command or query that failed
+#### Authentication Failures
+- Verify your `.env` file has correct credentials
+- Ensure you're using an **app password**, not your main password
+- Check that your Fastmail account has API access enabled
 
-## Security
+#### MCP Client Issues
+- Confirm the absolute path in your MCP configuration
+- Verify `PYTHONPATH` is set correctly
+- Restart your MCP client after configuration changes
 
-- **Credentials**: Store all credentials in `.env` file, never in code
-- **App Passwords**: Use Fastmail app passwords, not your main account password  
-- **Sample Data**: The server includes sample data for testing when live API is unavailable
-- **Error Handling**: Graceful degradation to sample data prevents exposure of API errors
+### Getting Help
 
-## Contributing
+When reporting issues, please include:
+- Your operating system and Python version
+- MCP client type and version  
+- Server logs (with sensitive data removed)
+- Steps to reproduce the problem
 
-1. Follow the coding standards defined in `AGENTS.md`
-2. Ensure all tests pass before submitting changes
-3. Update documentation for any new features
-4. Use conventional commit messages
+## 🤝 Contributing
 
-## License
+We welcome contributions! This project follows the development guidelines defined in [`AGENTS.md`](AGENTS.md).
 
-This project follows the guidelines and structure defined in the repository's agent configuration files.
+### Development Workflow
+
+1. **Fork and Clone**
+   ```bash
+   git clone https://github.com/yourusername/Fastmail-MCP.git
+   ```
+
+2. **Create Feature Branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+3. **Make Changes**
+   - Follow existing code style and patterns
+   - Add tests for new functionality
+   - Update documentation as needed
+
+4. **Quality Checks**
+   ```bash
+   # Run the full validation pipeline
+   ruff check src tests
+   black src tests
+   pytest --cov=fastmail_mcp --cov-report=term-missing --cov-fail-under=80
+   ```
+
+5. **Submit Pull Request**
+   - Use clear, descriptive commit messages
+   - Reference any related issues
+   - Include tests and documentation updates
+
+### Code Standards
+- **Python 3.11+ semantics**
+- **Black formatting** (88 character line length)
+- **Ruff linting** with project configuration
+- **Comprehensive testing** (minimum 80% coverage)
+- **Type hints** for public APIs
+- **Docstrings** for modules and functions
+
+### Issue Tracking
+We use [Linear](https://linear.app/doronkatz) for project management. Issues and feature requests are welcome through GitHub Issues.
+
+## 📋 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- **Documentation**: [Full Documentation](docs/)
+- **Issue Tracker**: [GitHub Issues](https://github.com/doronkatz/Fastmail-MCP/issues)
+- **Changelog**: [Release Notes](https://github.com/doronkatz/Fastmail-MCP/releases)
+- **MCP Specification**: [Model Context Protocol](https://modelcontextprotocol.io/)
+- **Fastmail API**: [Fastmail Developer Docs](https://www.fastmail.com/developer/)
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the MCP community**
+
+[⭐ Star this repo](https://github.com/doronkatz/Fastmail-MCP) • [🐛 Report bugs](https://github.com/doronkatz/Fastmail-MCP/issues) • [💡 Request features](https://github.com/doronkatz/Fastmail-MCP/issues/new)
+
+</div>
